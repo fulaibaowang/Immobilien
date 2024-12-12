@@ -15,7 +15,7 @@ This Dash application provides a financial comparison between buying a property 
 - **Model Comparisons**:  
   It compares buying versus renting net worth accumulation over time.
 
-<img src="Screenshot.png" alt="Alt text" height="400">
+<img src="images/Screenshot.png" alt="Alt text" height="400">
 
 ## Running the App
 ```
