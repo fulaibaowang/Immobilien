@@ -21,3 +21,4 @@ This Dash application provides a financial comparison between buying a property 
 ```
  MSYS_NO_PATHCONV=1 docker run -it -p 8050:8050 fulaibaowang/immobilien:1.0.0 python /Immobilien/app.py
 ```
+And open [http://localhost:8050](http://localhost:8050).
