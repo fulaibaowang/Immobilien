@@ -1,0 +1,38 @@
+name: production
+
+on:
+  push:
+    tags:
+      - '*'   # triggers on any tag (e.g. 1.0.0 or v1.0.0)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKER_HUB_TOKEN }}" \
+            | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin docker.io
+
+      - name: Build & push image
+        env:
+          IMAGE: docker.io/fulaibaowang/immobilien
+          # github.ref_name is the tag name, e.g. "1.0.0" or "v1.0.0"
+          RAW_TAG: ${{ github.ref_name }}
+        run: |
+          # strip optional leading "v" (so both v1.0.0 and 1.0.0 produce 1.0.0)
+          VERSION="${RAW_TAG#v}"
+
+          echo "Building $IMAGE:$VERSION"
+
+          docker build \
+            --no-cache \
+            -t "$IMAGE:$VERSION" \
+            -t "$IMAGE:latest" \
+            .
+
+          docker push "$IMAGE:$VERSION"
+          docker push "$IMAGE:latest"
