@@ -168,8 +168,8 @@ def buying_vs_renting3(purchase_price, down_payment, refurbish, nebenkost_rate, 
     buy_net_worth = []
     rent_net_worth = []
     invested_capital_total = down_payment
-    invested_capital_ETF = invested_capital_total * 1/5
-    invested_capital_savings = invested_capital_total * 4/5
+    invested_capital_ETF = invested_capital_total * 1/8
+    invested_capital_savings = invested_capital_total * 7/8
     
     for month in range(months):
         monthly_property_value = purchase_price * ((1 + property_appreciation_rate/12)**month)
@@ -540,7 +540,7 @@ def update_plot2(n_clicks, loan_interest_rate, property_appreciation_rate, rent_
     fig3.add_trace(go.Scatter(x=years_list_3, y=buy_net_worth_3, mode='lines', name='Buying'))
     fig3.add_trace(go.Scatter(x=years_list_3, y=rent_net_worth_3, mode='lines', name='Renting'))
     fig3.update_layout(
-        title="very conserved: 4/5 Down payment put in e.g bank savings from year 0, having return of 1%, rest 1/5, to ETF from year 0) ",
+        title="very conserved: 7/8 Down payment put in e.g bank savings from year 0, having return of 1% or less, rest 1/8, to ETF from year 0) ",
         xaxis_title="Years",
         yaxis_title="Net Worth (€)",
         legend_title="Scenario",
