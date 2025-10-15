@@ -552,4 +552,4 @@ def update_plot2(n_clicks, loan_interest_rate, property_appreciation_rate, rent_
     return fig,fig2,fig3, monthly_savings_text
     
 if __name__ == '__main__':
-    app.run_server(host='0.0.0.0', port=8050,debug=True)
+    app.run(host='0.0.0.0', port=8050,debug=True)
