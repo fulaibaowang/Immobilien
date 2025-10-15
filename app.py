@@ -71,6 +71,7 @@ def calculate_amortization(loan_amount, annual_interest_rate, monthly_payment=No
         "initial_tilgung_rate": initial_tilgung_rate
     }
 
+# model 1: too optimistic (all to ETF)
 def buying_vs_renting(purchase_price, down_payment, refurbish, nebenkost_rate, maintenance_rate, property_taxes,
                       initial_rent, loan_interest_rate, property_appreciation_rate, rent_inflation_rate,
                       investment_return_rate, loan_term):
@@ -109,6 +110,7 @@ def buying_vs_renting(purchase_price, down_payment, refurbish, nebenkost_rate, m
     last_monthly_savings = monthly_savings
     return buy_net_worth, rent_net_worth, list(range(months)), last_monthly_savings
 
+# model 2: a bit more realistic, 3/4 down payment to savings, 1/4 to ETF
 def buying_vs_renting2(purchase_price, down_payment, refurbish, nebenkost_rate, maintenance_rate, property_taxes,
                       initial_rent, loan_interest_rate, property_appreciation_rate, rent_inflation_rate,
                       investment_return_rate, loan_term):
@@ -138,6 +140,49 @@ def buying_vs_renting2(purchase_price, down_payment, refurbish, nebenkost_rate, 
         invested_capital_ETF += monthly_savings
         monthly_investment_return1 = invested_capital_ETF * (investment_return_rate / 12) 
         monthly_investment_return2 = invested_capital_savings * (max((loan_interest_rate - 0.02), 0) / 12) 
+        invested_capital_ETF += monthly_investment_return1
+        invested_capital_savings += monthly_investment_return2
+        invested_capital_total = invested_capital_ETF + invested_capital_savings
+
+        rent_net_worth.append(invested_capital_total)
+
+        outstanding_balance = npf.fv(monthly_loan_interest_rate, month+1, monthly_payment, -loan_amount)
+        equity = monthly_property_value - outstanding_balance
+        buy_cumulative_cash_flow = equity - inital_payment
+        buy_net_worth.append(buy_cumulative_cash_flow)
+
+    return buy_net_worth, rent_net_worth, list(range(months))
+
+# model 3: conserved model
+def buying_vs_renting3(purchase_price, down_payment, refurbish, nebenkost_rate, maintenance_rate, property_taxes,
+                      initial_rent, loan_interest_rate, property_appreciation_rate, rent_inflation_rate,
+                      investment_return_rate, loan_term):
+    inital_payment = purchase_price * nebenkost_rate + refurbish
+    loan_amount = purchase_price - down_payment
+    monthly_loan_interest_rate = loan_interest_rate / 12
+
+    years = loan_term
+    months = years * 12
+    monthly_payment = npf.pmt(monthly_loan_interest_rate, loan_term * 12, -loan_amount)
+
+    buy_net_worth = []
+    rent_net_worth = []
+    invested_capital_total = down_payment
+    invested_capital_ETF = invested_capital_total * 1/5
+    invested_capital_savings = invested_capital_total * 4/5
+    
+    for month in range(months):
+        monthly_property_value = purchase_price * ((1 + property_appreciation_rate/12)**month)
+        monthly_maintenance = (purchase_price * maintenance_rate)/12
+        monthly_taxes = property_taxes / 12
+        monthly_buying_cost = monthly_payment + monthly_maintenance + monthly_taxes
+
+        monthly_rent = initial_rent * ((1 + rent_inflation_rate/12) ** month)
+        monthly_savings = monthly_buying_cost - monthly_rent
+
+        invested_capital_ETF += monthly_savings
+        monthly_investment_return1 = invested_capital_ETF * (investment_return_rate / 12) 
+        monthly_investment_return2 = invested_capital_savings * (max(min(loan_interest_rate - 0.02, 0.01), 0) / 12)
         invested_capital_ETF += monthly_investment_return1
         invested_capital_savings += monthly_investment_return2
         invested_capital_total = invested_capital_ETF + invested_capital_savings
@@ -290,8 +335,12 @@ app.layout = html.Div([
         dcc.Graph(id='plot2_figure'),
 
         # Add Plot for Model 2
-        html.H3("Model 2 conserved: Buying vs Renting Net Worth Over Time"),
-        dcc.Graph(id='plot2_figure_model2')
+        html.H3("Model 2: Buying vs Renting Net Worth Over Time"),
+        dcc.Graph(id='plot2_figure_model2'),
+        
+        # Add Plot for Model 3
+        html.H3("Model 3: Buying vs Renting Net Worth Over Time"),
+        dcc.Graph(id='plot2_figure_model3')
 
     ], style={'margin': '20px', 'padding': '10px', 'border': '1px solid #ccc'})
 ])
@@ -393,6 +442,7 @@ def update_plot1(n_clicks, scenario, loan_interest_rate, purchase_price, down_pa
 @app.callback(
     [Output('plot2_figure', 'figure'),
      Output('plot2_figure_model2', 'figure'),
+     Output('plot2_figure_model3', 'figure'),
      Output('monthly_savings_display', 'children')],
     [Input('update_plot2', 'n_clicks')],
     [State('loan_interest_rate', 'value'),
@@ -444,14 +494,31 @@ def update_plot2(n_clicks, loan_interest_rate, property_appreciation_rate, rent_
         loan_term=model_loan_term
     )
 
+    # Compute Model 3
+    buy_net_worth_3, rent_net_worth_3, months_list_3 = buying_vs_renting3(
+        purchase_price=purchase_price,
+        down_payment=down_payment,
+        refurbish=refurbish,
+        nebenkost_rate=nebenkost_rate,
+        maintenance_rate=maintenance_rate,
+        property_taxes=property_taxes,
+        initial_rent=initial_rent,
+        loan_interest_rate=loan_interest_rate,
+        property_appreciation_rate=property_appreciation_rate,
+        rent_inflation_rate=rent_inflation_rate,
+        investment_return_rate=investment_return_rate,
+        loan_term=model_loan_term
+    )
+
     years_list_1  = [m/12 for m in months_list_1]
     years_list_2  = [m/12 for m in months_list_2]
+    years_list_3  = [m/12 for m in months_list_3]
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=years_list_1, y=buy_net_worth_1, mode='lines', name='Buying'))
     fig.add_trace(go.Scatter(x=years_list_1, y=rent_net_worth_1, mode='lines', name='Renting'))
     fig.update_layout(
-        title="Down payment put in e.g ETFs from year 0, having return of Investment Return Rate",
+        title="too optimistic (all to ETF): Down payment put in e.g ETFs from year 0, having return of Investment Return Rate",
         xaxis_title="Years",
         yaxis_title="Net Worth (€)",
         legend_title="Scenario",
@@ -462,7 +529,18 @@ def update_plot2(n_clicks, loan_interest_rate, property_appreciation_rate, rent_
     fig2.add_trace(go.Scatter(x=years_list_2, y=buy_net_worth_2, mode='lines', name='Buying'))
     fig2.add_trace(go.Scatter(x=years_list_2, y=rent_net_worth_2, mode='lines', name='Renting'))
     fig2.update_layout(
-        title="Down payment put in e.g bank savings from year 0, having return of (Loan Interest Rate -2%) ",
+        title="realistic but a bit optimistic: 3/4 Down payment put in e.g bank savings from year 0, having return of (Loan Interest Rate minus 2%), rest 1/4 to ETF from year 0",
+        xaxis_title="Years",
+        yaxis_title="Net Worth (€)",
+        legend_title="Scenario",
+        hovermode="x"
+    )
+
+    fig3 = go.Figure()
+    fig3.add_trace(go.Scatter(x=years_list_3, y=buy_net_worth_3, mode='lines', name='Buying'))
+    fig3.add_trace(go.Scatter(x=years_list_3, y=rent_net_worth_3, mode='lines', name='Renting'))
+    fig3.update_layout(
+        title="very conserved: 4/5 Down payment put in e.g bank savings from year 0, having return of 1%, rest 1/5, to ETF from year 0) ",
         xaxis_title="Years",
         yaxis_title="Net Worth (€)",
         legend_title="Scenario",
@@ -471,7 +549,7 @@ def update_plot2(n_clicks, loan_interest_rate, property_appreciation_rate, rent_
 
     monthly_savings_text = f"Last Monthly Savings (Model 1): €{last_monthly_savings_1:.2f}"
     
-    return fig,fig2, monthly_savings_text
+    return fig,fig2,fig3, monthly_savings_text
     
 if __name__ == '__main__':
     app.run_server(host='0.0.0.0', port=8050,debug=True)
